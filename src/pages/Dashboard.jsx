@@ -147,12 +147,12 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-100">
       <nav className="bg-blue-600 text-white p-4">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Finance Control</h1>
-          <div className="flex gap-4 items-center">
-            <span>{user?.email}</span>
+          <h1 className="text-xl sm:text-2xl font-bold">Finance Control</h1>
+          <div className="flex gap-2 sm:gap-4 items-center">
+            <span className="text-xs sm:text-sm hidden sm:inline">{user?.email}</span>
             <button 
               onClick={handleLogout}
-              className="bg-red-500 px-4 py-2 rounded hover:bg-red-600"
+              className="bg-red-500 px-2 py-1 sm:px-4 sm:py-2 rounded hover:bg-red-600 text-xs sm:text-sm"
             >
               Logout
             </button>
@@ -160,38 +160,38 @@ export default function Dashboard() {
         </div>
       </nav>
 
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="grid grid-cols-3 gap-6 mb-6">
-          <a href="/investments" className="bg-white p-6 rounded-lg shadow hover:shadow-lg cursor-pointer transition">
-            <h2 className="text-xl font-bold">📊 Investimentos</h2>
-            <p>Adicionar e gerenciar investimentos</p>
+      <div className="max-w-6xl mx-auto p-4 sm:p-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+          <a href="/investments" className="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-lg cursor-pointer transition">
+            <h2 className="text-lg sm:text-xl font-bold">📊 Investimentos</h2>
+            <p className="text-xs sm:text-sm">Adicionar e gerenciar investimentos</p>
           </a>
-          <a href="/fixed-bills" className="bg-white p-6 rounded-lg shadow hover:shadow-lg cursor-pointer transition">
-            <h2 className="text-xl font-bold">🏠 Fixas</h2>
-            <p>Gerenciar contas fixas mensais</p>
+          <a href="/fixed-bills" className="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-lg cursor-pointer transition">
+            <h2 className="text-lg sm:text-xl font-bold">🏠 Fixas</h2>
+            <p className="text-xs sm:text-sm">Gerenciar contas fixas mensais</p>
           </a>
-          <a href="/installments" className="bg-white p-6 rounded-lg shadow hover:shadow-lg cursor-pointer transition">
-            <h2 className="text-xl font-bold">💳 Parcelamentos</h2>
-            <p>Gerenciar pagamentos parcelados</p>
+          <a href="/installments" className="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-lg cursor-pointer transition">
+            <h2 className="text-lg sm:text-xl font-bold">💳 Parcelamentos</h2>
+            <p className="text-xs sm:text-sm">Gerenciar pagamentos parcelados</p>
           </a>
         </div>
 
         <div className="bg-white p-4 rounded-lg shadow">
-          <h3 className="text-lg font-bold mb-4">Totais Mensais (próximos 12 meses)</h3>
-          <p className="text-sm text-gray-600 mb-4">Incluindo parcelamentos, contas fixas e investimentos</p>
+          <h3 className="text-base sm:text-lg font-bold mb-4">Totais Mensais (próximos 12 meses)</h3>
+          <p className="text-xs sm:text-sm text-gray-600 mb-4">Incluindo parcelamentos, contas fixas e investimentos</p>
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
                 <tr>
                   {monthLabels.map((lbl) => (
-                    <th key={lbl} className="px-4 py-2 text-left text-gray-600">{lbl}</th>
+                    <th key={lbl} className="px-2 py-2 text-left text-gray-600 text-xs sm:px-4">{lbl}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 <tr>
                   {monthlyTotals.map((val, idx) => (
-                    <td key={idx} className="px-4 py-3 font-bold">{val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                    <td key={idx} className="px-2 py-3 font-bold text-xs sm:px-4">{val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
                   ))}
                 </tr>
               </tbody>
@@ -200,36 +200,45 @@ export default function Dashboard() {
         </div>
 
         <div className="bg-white p-4 rounded-lg shadow mt-6">
-          <h3 className="text-lg font-bold mb-4">Gráfico de Totais Mensais</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart
-              data={monthLabels.map((label, idx) => ({
-                name: label,
-                total: monthlyTotals[idx] || 0,
-                fixas: fixedBillTotals[idx] || 0,
-                parcelas: installmentTotals[idx] || 0,
-                investimentos: investmentTotals[idx] || 0,
-              }))}
-              margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip 
-                formatter={(value, name) => [
-                  value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
-                  name === 'fixas' ? 'Contas Fixas' : name === 'parcelas' ? 'Parcelamentos' : name === 'investimentos' ? 'Investimentos' : 'Total'
-                ]}
-              />
-              <Legend 
-                formatter={(value) => value === 'fixas' ? 'Contas Fixas' : value === 'parcelas' ? 'Parcelamentos' : value === 'investimentos' ? 'Investimentos' : 'Total'}
-              />
-              <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={2} name="total" />
-              <Line type="monotone" dataKey="fixas" stroke="#10b981" strokeWidth={2} strokeDasharray="5 5" name="fixas" />
-              <Line type="monotone" dataKey="parcelas" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" name="parcelas" />
-              <Line type="monotone" dataKey="investimentos" stroke="#8b5cf6" strokeWidth={2} strokeDasharray="5 5" name="investimentos" />
-            </LineChart>
-          </ResponsiveContainer>
+          <h3 className="text-base sm:text-lg font-bold mb-4">Gráfico de Totais Mensais</h3>
+          <div className="w-full overflow-x-auto">
+            <ResponsiveContainer width="100%" height={250} minHeight={200}>
+              <LineChart
+                data={monthLabels.map((label, idx) => ({
+                  name: label,
+                  total: monthlyTotals[idx] || 0,
+                  fixas: fixedBillTotals[idx] || 0,
+                  parcelas: installmentTotals[idx] || 0,
+                  investimentos: investmentTotals[idx] || 0,
+                }))}
+                margin={{ top: 5, right: 10, left: 0, bottom: 60 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="name" 
+                  angle={-45} 
+                  textAnchor="end" 
+                  height={60}
+                  tick={{ fontSize: 10 }}
+                />
+                <YAxis tick={{ fontSize: 10 }} />
+                <Tooltip 
+                  formatter={(value, name) => [
+                    value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
+                    name === 'fixas' ? 'Contas Fixas' : name === 'parcelas' ? 'Parcelamentos' : name === 'investimentos' ? 'Investimentos' : 'Total'
+                  ]}
+                />
+                <Legend 
+                  formatter={(value) => value === 'fixas' ? 'Contas Fixas' : value === 'parcelas' ? 'Parcelamentos' : value === 'investimentos' ? 'Investimentos' : 'Total'}
+                  wrapperStyle={{ fontSize: '12px' }}
+                />
+                <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={2} name="total" />
+                <Line type="monotone" dataKey="fixas" stroke="#10b981" strokeWidth={2} strokeDasharray="5 5" name="fixas" />
+                <Line type="monotone" dataKey="parcelas" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" name="parcelas" />
+                <Line type="monotone" dataKey="investimentos" stroke="#8b5cf6" strokeWidth={2} strokeDasharray="5 5" name="investimentos" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
     </div>

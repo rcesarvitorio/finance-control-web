@@ -117,7 +117,7 @@ export default function FixedBills() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
+    <div className="min-h-screen bg-gray-100 p-4 sm:p-6">
       {showSuccessMessage && (
         <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-2 animate-pulse">
           <span className="text-2xl">✓</span>
@@ -126,18 +126,18 @@ export default function FixedBills() {
       )}
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Contas Fixas</h1>
-          <a href="/dashboard" className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+          <h1 className="text-xl sm:text-3xl font-bold">Contas Fixas</h1>
+          <a href="/dashboard" className="bg-blue-500 text-white px-3 py-2 sm:px-4 sm:py-2 rounded hover:bg-blue-600 text-sm sm:text-base">
             Voltar
           </a>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow mb-6">
+        <div className="bg-white p-4 sm:p-6 rounded-lg shadow mb-6">
           <div className="flex gap-2 mb-4">
             <select
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="flex-1 p-2 border rounded"
+              className="flex-1 p-2 border rounded text-sm sm:text-base"
             >
               <option value="">Selecione ou adicione uma descrição</option>
               {getUniqueDescriptions().map((desc) => (
@@ -146,7 +146,7 @@ export default function FixedBills() {
             </select>
             <button
               onClick={() => setShowNewDescriptionInput(true)}
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              className="bg-blue-500 text-white px-3 py-2 sm:px-4 sm:py-2 rounded hover:bg-blue-600 text-sm sm:text-base"
             >
               +
             </button>
@@ -159,12 +159,12 @@ export default function FixedBills() {
                 placeholder="Nova descrição"
                 value={newDescription}
                 onChange={(e) => setNewDescription(e.target.value)}
-                className="flex-1 p-2 border rounded"
+                className="flex-1 p-2 border rounded text-sm sm:text-base"
                 onKeyPress={(e) => e.key === 'Enter' && handleAddNewDescription()}
               />
               <button
                 onClick={handleAddNewDescription}
-                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                className="bg-green-500 text-white px-2 py-2 sm:px-4 sm:py-2 rounded hover:bg-green-600 text-sm sm:text-base"
               >
                 ✓
               </button>
@@ -173,7 +173,7 @@ export default function FixedBills() {
                   setShowNewDescriptionInput(false);
                   setNewDescription('');
                 }}
-                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+                className="bg-gray-500 text-white px-2 py-2 sm:px-4 sm:py-2 rounded hover:bg-gray-600 text-sm sm:text-base"
               >
                 ✗
               </button>
@@ -184,19 +184,19 @@ export default function FixedBills() {
             placeholder="Valor Mensal (R$)"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="w-full p-2 mb-4 border rounded"
+            className="w-full p-2 mb-4 border rounded text-sm sm:text-base"
           />
           <input
             type="date"
             value={dueDay}
             onChange={(e) => setDueDay(e.target.value)}
-            className="w-full p-2 mb-4 border rounded"
+            className="w-full p-2 mb-4 border rounded text-sm sm:text-base"
           />
 
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="w-full p-2 mb-4 border rounded"
+            className="w-full p-2 mb-4 border rounded text-sm sm:text-base"
           >
             <option value="agua">💧 Água</option>
             <option value="luz">💡 Luz/Energia</option>
@@ -210,7 +210,7 @@ export default function FixedBills() {
           </select>
           <button
             onClick={handleAdd}
-            className="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600"
+            className="w-full bg-green-500 text-white p-3 rounded hover:bg-green-600 text-sm sm:text-base sm:p-2"
           >
             Adicionar Conta Fixa
           </button>
