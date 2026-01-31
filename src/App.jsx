@@ -8,7 +8,8 @@ import './styles/global.css';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
-import Transactions from './pages/Transactions';
+import Investments from './pages/Investments';
+import FixedBills from './pages/FixedBills';
 import Installments from './pages/Installments';
 
 function PrivateRoute({ children, loading, user }) {
@@ -37,7 +38,8 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/dashboard" element={<PrivateRoute loading={loading} user={user}><Dashboard /></PrivateRoute>} />
-        <Route path="/transactions" element={<PrivateRoute loading={loading} user={user}><Transactions /></PrivateRoute>} />
+        <Route path="/investments" element={<PrivateRoute loading={loading} user={user}><Investments /></PrivateRoute>} />
+        <Route path="/fixed-bills" element={<PrivateRoute loading={loading} user={user}><FixedBills /></PrivateRoute>} />
         <Route path="/installments" element={<PrivateRoute loading={loading} user={user}><Installments /></PrivateRoute>} />
         <Route path="/" element={<Navigate to="/dashboard" />} />
       </Routes>
