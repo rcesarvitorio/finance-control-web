@@ -119,7 +119,7 @@ export default function Investments() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 sm:p-6">
+    <div className="min-h-screen bg-gray-100 p-4 sm:p-6" data-testid="investments-container">
       {showSuccessMessage && (
         <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-2 animate-pulse">
           <span className="text-2xl">✓</span>
@@ -135,68 +135,44 @@ export default function Investments() {
         </div>
 
         <div className="bg-white p-4 sm:p-6 rounded-lg shadow mb-6">
-          <div className="flex gap-2 mb-4">
-            <select
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="flex-1 p-2 border rounded text-sm sm:text-base"
-            >
-              <option value="">Selecione ou adicione uma descrição</option>
-              {getUniqueDescriptions().map((desc) => (
-                <option key={desc} value={desc}>{desc}</option>
-              ))}
-            </select>
-            <button
-              onClick={() => setShowNewDescriptionInput(true)}
-              className="bg-blue-500 text-white px-3 py-2 sm:px-4 sm:py-2 rounded hover:bg-blue-600 text-sm sm:text-base"
-            >
-              +
-            </button>
-          </div>
-          
-          {showNewDescriptionInput && (
             <div className="flex gap-2 mb-4">
-              <input
-                type="text"
-                placeholder="Nova descrição"
-                value={newDescription}
-                onChange={(e) => setNewDescription(e.target.value)}
-                className="flex-1 p-2 border rounded text-sm sm:text-base"
-                onKeyPress={(e) => e.key === 'Enter' && handleAddNewDescription()}
-              />
-              <button
-                onClick={handleAddNewDescription}
-                className="bg-green-500 text-white px-2 py-2 sm:px-4 sm:py-2 rounded hover:bg-green-600 text-sm sm:text-base"
-              >
-                ✓
-              </button>
-              <button
-                onClick={() => {
-                  setShowNewDescriptionInput(false);
-                  setNewDescription('');
-                }}
-                className="bg-gray-500 text-white px-2 py-2 sm:px-4 sm:py-2 rounded hover:bg-gray-600 text-sm sm:text-base"
-              >
-                ✗
-              </button>
-            </div>
-          )}
+        <select
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="flex-1 p-2 border rounded text-sm sm:text-base"
+        >
+              <option value="">Selecione ou adicione uma descrição</option>
+            {getUniqueDescriptions().map((desc) => (
+              <option key={desc} value={desc}>{desc}</option>
+            ))}
+          </select>
+          <button
+            onClick={() => {}}
+            className="bg-blue-500 text-white px-3 py-2 sm:px-4 sm:py-2 rounded hover:bg-blue-600 text-sm sm:text-base"
+            data-testid="invest-desc-add-plus-btn"
+          >
+            +
+          </button>
+          </div>
           
           <input
             type="text"
             placeholder="Valor do Investimento (R$)"
+            data-testid="invest-amount-input"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             className="w-full p-2 mb-4 border rounded text-sm sm:text-base"
           />
           <input
             type="date"
+            data-testid="invest-date-input"
             value={dueDay}
             onChange={(e) => setDueDay(e.target.value)}
             className="w-full p-2 mb-4 border rounded text-sm sm:text-base"
           />
 
           <select
+            data-testid="invest-category-input"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             className="w-full p-2 mb-4 border rounded text-sm sm:text-base"
@@ -214,6 +190,7 @@ export default function Investments() {
           </select>
           <button
             onClick={handleAdd}
+            data-testid="investments-add-btn"
             className="w-full bg-green-500 text-white p-3 rounded hover:bg-green-600 text-sm sm:text-base sm:p-2"
           >
             Adicionar Investimento
@@ -222,16 +199,16 @@ export default function Investments() {
 
         <div className="space-y-4">
           {investments.length === 0 ? (
-            <p className="text-center text-gray-500">Nenhum investimento registrado</p>
+            <p className="text-center text-gray-500" data-testid="investments-empty">Nenhum investimento registrado</p>
           ) : (
             investments.map((investment) => (
-              <div key={investment.id} className={`bg-white p-4 rounded-lg shadow ${isOverdue(investment.dueDay) ? 'border-l-4 border-red-500' : ''}`}>
+              <div key={investment.id} data-testid={`invest-row-${investment.id}`} className={`bg-white p-4 rounded-lg shadow ${isOverdue(investment.dueDay) ? 'border-l-4 border-red-500' : ''}`}>
                 <div className="flex justify-between items-start mb-2">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="font-bold text-lg">{getCategoryEmoji(investment.category)} {investment.description}</p>
+                      <p data-testid={`invest-desc-${investment.id}`} className="font-bold text-lg">{getCategoryEmoji(investment.category)} {investment.description}</p>
                       {isOverdue(investment.dueDay) && (
-                        <span className="bg-red-200 text-red-800 px-3 py-1 rounded-full text-xs font-bold">⚠️ ATRASADO</span>
+                        <span data-testid="invest-status-overdue" className="bg-red-200 text-red-800 px-3 py-1 rounded-full text-xs font-bold">⚠️ ATRASADO</span>
                       )}
                     </div>
                     <p className="text-gray-600">Categoria: {getCategoryName(investment.category)}</p>
@@ -260,7 +237,7 @@ export default function Investments() {
             <h3 className="text-lg font-bold mb-4">Resumo de Investimentos</h3>
             <div className="text-center">
               <p className="text-gray-600">Total Investido</p>
-              <p className="font-bold text-2xl text-green-600">
+              <p data-testid="investments-total" className="font-bold text-2xl text-green-600">
                 R$ {investments.reduce((sum, investment) => sum + investment.amount, 0).toFixed(2)}
               </p>
             </div>
