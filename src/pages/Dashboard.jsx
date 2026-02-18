@@ -176,7 +176,7 @@ export default function Dashboard() {
           </a>
         </div>
 
-        <div className="bg-white p-4 rounded-lg shadow">
+        <div className="bg-white p-4 rounded-lg shadow" data-testid="dashboard-totals-12m">
           <h3 className="text-base sm:text-lg font-bold mb-4">Totais Mensais (próximos 12 meses)</h3>
           <p className="text-xs sm:text-sm text-gray-600 mb-4">Incluindo parcelamentos, contas fixas e investimentos</p>
           <div className="overflow-x-auto">

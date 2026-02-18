@@ -1,4 +1,5 @@
 export default {
+  verbose: true, // show each individual test name and status
   testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/src/test-utils.js'],
   moduleNameMapping: {
