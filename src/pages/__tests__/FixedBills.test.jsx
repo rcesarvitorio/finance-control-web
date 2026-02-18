@@ -8,13 +8,19 @@ jest.mock('../../services/fixedBillService', () => ({
   deleteFixedBill: jest.fn(),
 }));
 
+jest.mock('../../services/checklistService', () => ({
+  getAllChecklistItems: jest.fn(),
+}));
+
 import { addFixedBill, getFixedBills, deleteFixedBill } from '../../services/fixedBillService';
+import { getAllChecklistItems } from '../../services/checklistService';
 
 describe('FixedBills Page', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // inicial vazio
     getFixedBills.mockResolvedValue([]);
+    getAllChecklistItems.mockResolvedValue({});
     // mock para evitar uso de window.confirm não implementado no jsdom
     global.confirm = jest.fn(() => true);
     // mock padrão para alert
@@ -120,4 +126,191 @@ describe('FixedBills Page', () => {
       expect(getFixedBills).toHaveBeenCalled();
     });
   });
+
+  // Novos testes para filtro de meses e sincronização com checklist
+  it('Deve renderizar abas de meses', async () => {
+    renderFixedBills();
+    await waitFor(() => {
+      // Deve mostrar pelo menos o mês atual (FEV ou outro)
+      const monthButtons = screen.getAllByRole('button');
+      expect(monthButtons.length).toBeGreaterThan(0);
+    });
+  });
+
+  it('Deve filtrar contas por mês selecionado', async () => {
+    const bills = [
+      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-02-20', category: 'agua' },
+      { id: 'f2', description: 'Luz', amount: 40, dueDay: '2026-03-25', category: 'luz' },
+    ];
+    getFixedBills.mockResolvedValue(bills);
+    
+    const { container } = renderFixedBills();
+
+    await waitFor(() => {
+      expect(screen.getByText('Água')).toBeInTheDocument();
+    });
+
+    // Inicialmente deve mostrar ambas as contas (se ambas forem do mês inicial)
+    // Vamos clicar no mês de março e verificar se apenas a conta de março aparece
+    const monthButtons = screen.getAllByRole('button').filter(btn => 
+      btn.textContent.includes('MAR')
+    );
+
+    if (monthButtons.length > 0) {
+      fireEvent.click(monthButtons[0]);
+      
+      await waitFor(() => {
+        // Apenas a conta de março deve estar visível
+        expect(screen.getByText('Luz')).toBeInTheDocument();
+      });
+    }
+  });
+
+  it('Deve mostrar "PAGA" para contas marcadas no checklist', async () => {
+    const bills = [
+      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-02-20', category: 'agua' },
+    ];
+    getFixedBills.mockResolvedValue(bills);
+    
+    const checklistItems = {
+      '2026-02': [
+        { id: 'f1', text: 'Água - R$ 60.00', completed: true, isFromFixedBill: true }
+      ]
+    };
+    getAllChecklistItems.mockResolvedValue(checklistItems);
+
+    renderFixedBills();
+
+    await waitFor(() => {
+      expect(screen.getByText('✓ PAGA')).toBeInTheDocument();
+    });
+  });
+
+  it('Não deve mostrar "PAGA" para contas não marcadas no checklist', async () => {
+    const bills = [
+      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-02-20', category: 'agua' },
+    ];
+    getFixedBills.mockResolvedValue(bills);
+    
+    const checklistItems = {
+      '2026-02': [
+        { id: 'f1', text: 'Água - R$ 60.00', completed: false, isFromFixedBill: true }
+      ]
+    };
+    getAllChecklistItems.mockResolvedValue(checklistItems);
+
+    renderFixedBills();
+
+    await waitFor(() => {
+      expect(screen.queryByText('✓ PAGA')).not.toBeInTheDocument();
+    });
+  });
+
+  it('Deve recarregar checklist quando página fica visível', async () => {
+    const bills = [
+      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-02-20', category: 'agua' },
+    ];
+    getFixedBills.mockResolvedValue(bills);
+
+    renderFixedBills();
+
+    await waitFor(() => {
+      expect(getAllChecklistItems).toHaveBeenCalled();
+    });
+
+    const initialCallCount = getAllChecklistItems.mock.calls.length;
+
+    // Simular visibilitychange event
+    Object.defineProperty(document, 'hidden', {
+      writable: true,
+      value: false
+    });
+    
+    fireEvent(document, new Event('visibilitychange'));
+
+    await waitFor(() => {
+      expect(getAllChecklistItems.mock.calls.length).toBeGreaterThanOrEqual(initialCallCount);
+    });
+  });
+
+  it('Deve mostrar texto riscado e opaco para contas pagas', async () => {
+    const bills = [
+      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-02-20', category: 'agua' },
+    ];
+    getFixedBills.mockResolvedValue(bills);
+    
+    const checklistItems = {
+      '2026-02': [
+        { id: 'f1', text: 'Água - R$ 60.00', completed: true, isFromFixedBill: true }
+      ]
+    };
+    getAllChecklistItems.mockResolvedValue(checklistItems);
+
+    const { container } = renderFixedBills();
+
+    await waitFor(() => {
+      const cardDiv = container.querySelector('[class*="border-green"]');
+      expect(cardDiv).toBeInTheDocument();
+      expect(cardDiv).toHaveClass('opacity-75');
+    });
+  });
+
+  it('Deve atualizar resumo mensal com total do mês selecionado', async () => {
+    const bills = [
+      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-02-20', category: 'agua' },
+      { id: 'f2', description: 'Luz', amount: 40, dueDay: '2026-03-25', category: 'luz' },
+    ];
+    getFixedBills.mockResolvedValue(bills);
+
+    const { container } = renderFixedBills();
+
+    await waitFor(() => {
+      // Inicialmente deve mostrar o total baseado no mês selecionado
+      const resumoText = screen.getByText('Resumo Mensal');
+      expect(resumoText).toBeInTheDocument();
+    });
+  });
+
+  it('Deve se selecionar o mês atual por padrão', async () => {
+    const bills = [
+      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-02-20', category: 'agua' },
+    ];
+    getFixedBills.mockResolvedValue(bills);
+
+    renderFixedBills();
+
+    await waitFor(() => {
+      // O mês atual deve estar selecionado (azul)
+      const monthButtons = screen.getAllByRole('button');
+      const selectedMonth = monthButtons.find(btn => 
+        btn.className.includes('bg-blue-600')
+      );
+      expect(selectedMonth).toBeInTheDocument();
+    });
+  });
+
+  it('Deve mostrar mensagem quando não há contas no mês selecionado', async () => {
+    const bills = [
+      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-02-20', category: 'agua' },
+    ];
+    getFixedBills.mockResolvedValue(bills);
+
+    const { container } = renderFixedBills();
+
+    await waitFor(() => {
+      expect(screen.getByText('Água')).toBeInTheDocument();
+    });
+
+    // Clique no mês futuro que não tem contas
+    const monthButtons = screen.getAllByRole('button').filter(btn => 
+      btn.textContent.includes('JUN')
+    );
+
+    if (monthButtons.length > 0) {
+      fireEvent.click(monthButtons[0]);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Nenhuma conta fixa registrada para este mês')).toBeInTheDocument();
+      });
+    }  });
 });

@@ -161,7 +161,7 @@ export default function Dashboard() {
       </nav>
 
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           <a href="/investments" className="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-lg cursor-pointer transition">
             <h2 className="text-lg sm:text-xl font-bold">📊 Investimentos</h2>
             <p className="text-xs sm:text-sm">Adicionar e gerenciar investimentos</p>
@@ -173,6 +173,10 @@ export default function Dashboard() {
           <a href="/installments" className="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-lg cursor-pointer transition">
             <h2 className="text-lg sm:text-xl font-bold">💳 Parcelamentos</h2>
             <p className="text-xs sm:text-sm">Gerenciar pagamentos parcelados</p>
+          </a>
+          <a href="/checklist" className="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-lg cursor-pointer transition">
+            <h2 className="text-lg sm:text-xl font-bold">✅ Pagamentos</h2>
+            <p className="text-xs sm:text-sm">Checklist de pagamentos</p>
           </a>
         </div>
 
