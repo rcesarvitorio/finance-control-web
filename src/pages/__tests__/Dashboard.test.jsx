@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 
 import Dashboard from '../Dashboard';
@@ -111,8 +111,10 @@ describe('Dashboard Page', () => {
 
     renderDashboard();
     await waitFor(() => {
-      // deve renderizar pelo menos uma label de mês com /2026
-      expect(screen.queryByText(/\/2026/)).toBeInTheDocument();
+      // Deve existir o container dos totais de 12 meses
+      const totals12m = screen.getByTestId('dashboard-totals-12m');
+      // Verificar uma label específica dentro do container (ex.: FEB/2026)
+      expect(within(totals12m).getByText(/FEV\/2026/)).toBeInTheDocument();
     });
   });
 });

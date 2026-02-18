@@ -137,8 +137,11 @@ export default function Investments() {
         <div className="bg-white p-4 sm:p-6 rounded-lg shadow mb-6">
             <div className="flex gap-2 mb-4">
         <select
+          data-testid="invest-desc-select"
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={(e) => {
+            setDescription(e.target.value);
+          }}
           className="flex-1 p-2 border rounded text-sm sm:text-base"
         >
               <option value="">Selecione ou adicione uma descrição</option>
@@ -147,14 +150,32 @@ export default function Investments() {
             ))}
           </select>
           <button
-            onClick={() => {}}
+            onClick={() => setShowNewDescriptionInput(true)}
             className="bg-blue-500 text-white px-3 py-2 sm:px-4 sm:py-2 rounded hover:bg-blue-600 text-sm sm:text-base"
             data-testid="invest-desc-add-plus-btn"
           >
             +
           </button>
           </div>
-          
+          {showNewDescriptionInput && (
+            <div className="flex gap-2 mb-4">
+              <input
+                data-testid="invest-desc-new-input"
+                type="text"
+                placeholder="Nova descrição"
+                value={newDescription}
+                onChange={(e) => setNewDescription(e.target.value)}
+                className="flex-1 p-2 border rounded text-sm sm:text-base"
+              />
+              <button
+                onClick={handleAddNewDescription}
+                data-testid="invest-desc-new-add-btn"
+                className="bg-green-500 text-white px-3 py-2 sm:px-4 sm:py-2 rounded hover:bg-green-600 text-sm sm:text-base"
+              >
+                OK
+              </button>
+            </div>
+          )}
           <input
             type="text"
             placeholder="Valor do Investimento (R$)"

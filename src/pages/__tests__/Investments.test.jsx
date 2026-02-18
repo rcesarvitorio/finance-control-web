@@ -28,7 +28,7 @@ describe('Investments Page (Testids simplified)', () => {
   };
 
   it('renderiza container e item da API', async () => {
-    const data = [{ id: 'i1', description: 'Ações', dueDay: '2026-03-10', amount: 100, category: 'acao' }];
+    const data = [{ id: 'i1', description: 'Acoes', dueDay: '2026-03-10', amount: 100, category: 'acao' }];
     renderInvestments(data);
     await waitFor(() => {
       expect(screen.getByTestId('investments-container')).toBeInTheDocument();
@@ -38,12 +38,16 @@ describe('Investments Page (Testids simplified)', () => {
   });
 
   it('adiciona investimentos com descrição existente', async () => {
-    const data = [{ id: 'i1', description: 'Ações', dueDay: '2026-03-10', amount: 100, category: 'acao' }];
+    const data = [{ id: 'i1', description: 'Acoes', dueDay: '2026-03-10', amount: 100, category: 'acao' }];
     renderInvestments(data);
-    // a descrição existente já está em use, vamos usar a seleção para descrever
+    // esperar opção de descrição aparecer após loadInvestments
+    await waitFor(() => screen.getByText('Acoes'));
     const selectDesc = screen.getByTestId('invest-desc-select');
-    // assume valor é 'Ações' para descrever
-    fireEvent.change(selectDesc, { target: { value: 'Ações' } });
+    // selecionar a descrição disponível
+    selectDesc.value = 'Acoes';
+    fireEvent.change(selectDesc, { target: { value: 'Acoes' } });
+    // aguardar o estado refletir na DOM antes de clicar
+    await waitFor(() => expect(screen.getByTestId('invest-desc-select').value).toBe('Acoes'));
     const amountInput = screen.getByTestId('invest-amount-input');
     fireEvent.change(amountInput, { target: { value: '150' } });
     const dateInput = screen.getByTestId('invest-date-input');
@@ -53,14 +57,21 @@ describe('Investments Page (Testids simplified)', () => {
     const addBtn = screen.getByTestId('investments-add-btn');
     fireEvent.click(addBtn);
     await waitFor(() => {
-      expect(addInvestment).toHaveBeenCalledWith(expect.objectContaining({ description: 'Ações', amount: 150 }));
+      expect(addInvestment).toHaveBeenCalledWith(expect.objectContaining({ description: 'Acoes', amount: 150 }));
     });
   });
 
   it('validação de valor inválido', async () => {
-    renderInvestments([]);
+    // incluir uma descrição existente para que possamos selecioná-la
+    const data = [{ id: 'i1', description: 'Acoes', dueDay: '2026-03-10', amount: 50, category: 'acao' }];
+    renderInvestments(data);
+    // esperar opção aparecer
+    await waitFor(() => screen.getByText('Acoes'));
     const selectDesc = screen.getByTestId('invest-desc-select');
-    fireEvent.change(selectDesc, { target: { value: 'Ações' } });
+    selectDesc.value = 'Acoes';
+    fireEvent.change(selectDesc, { target: { value: 'Acoes' } });
+    // aguardando o select refletir o valor
+    await waitFor(() => expect(screen.getByTestId('invest-desc-select').value).toBe('Acoes'));
     const amountInput = screen.getByTestId('invest-amount-input');
     fireEvent.change(amountInput, { target: { value: 'abc' } });
     const addBtn = screen.getByTestId('investments-add-btn');
