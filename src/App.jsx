@@ -11,6 +11,7 @@ import Dashboard from './pages/Dashboard';
 import Investments from './pages/Investments';
 import FixedBills from './pages/FixedBills';
 import Installments from './pages/Installments';
+import Checklist from './pages/Checklist';
 
 function PrivateRoute({ children, loading, user }) {
   if (loading) {
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="/investments" element={<PrivateRoute loading={loading} user={user}><Investments /></PrivateRoute>} />
         <Route path="/fixed-bills" element={<PrivateRoute loading={loading} user={user}><FixedBills /></PrivateRoute>} />
         <Route path="/installments" element={<PrivateRoute loading={loading} user={user}><Installments /></PrivateRoute>} />
+        <Route path="/checklist" element={<PrivateRoute loading={loading} user={user}><Checklist /></PrivateRoute>} />
         <Route path="/" element={<Navigate to="/dashboard" />} />
       </Routes>
     </BrowserRouter>

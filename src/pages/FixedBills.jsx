@@ -4,6 +4,7 @@ import {
   getFixedBills, 
   deleteFixedBill 
 } from '../services/fixedBillService';
+import { getAllChecklistItems } from '../services/checklistService';
 
 export default function FixedBills() {
   const [fixedBills, setFixedBills] = useState([]);
@@ -14,10 +15,68 @@ export default function FixedBills() {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [showNewDescriptionInput, setShowNewDescriptionInput] = useState(false);
   const [newDescription, setNewDescription] = useState('');
+  const [checklistItems, setChecklistItems] = useState({});
+  const [months, setMonths] = useState([]);
+  const [selectedMonth, setSelectedMonth] = useState(null);
 
   useEffect(() => {
     loadFixedBills();
+    loadChecklistItems();
+    initializeMonths();
+
+    // Recarrega o checklist quando a página fica visível novamente
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadChecklistItems();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
+
+  const initializeMonths = () => {
+    const now = new Date();
+    const monthsList = [];
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      monthsList.push(d);
+    }
+    setMonths(monthsList);
+    setSelectedMonth(monthsList[0]);
+  };
+
+  const loadChecklistItems = async () => {
+    const items = await getAllChecklistItems();
+    setChecklistItems(items);
+  };
+
+  const getMonthKey = (month) => {
+    return `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`;
+  };
+
+  const getCurrentMonthKey = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  };
+
+  const isBillPaid = (billId) => {
+    if (!selectedMonth) return false;
+    const monthKey = getMonthKey(selectedMonth);
+    const monthChecklistItems = checklistItems[monthKey] || [];
+    return monthChecklistItems.some((item) => item.id === billId && item.completed);
+  };
+
+  const getBillsByMonth = () => {
+    if (!selectedMonth) return [];
+    return fixedBills.filter((bill) => {
+      const billDate = new Date(bill.dueDay);
+      return (
+        billDate.getMonth() === selectedMonth.getMonth() &&
+        billDate.getFullYear() === selectedMonth.getFullYear()
+      );
+    });
+  };
 
   const loadFixedBills = async () => {
     const data = await getFixedBills();
@@ -132,6 +191,36 @@ export default function FixedBills() {
           </a>
         </div>
 
+        {/* Filtro de Meses */}
+        {months.length > 0 && (
+          <div className="mb-6 overflow-x-auto">
+            <div className="flex gap-2 pb-2 min-w-full">
+              {months.map((month) => {
+                const MONTH_ABBR = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+                const monthLabel = `${MONTH_ABBR[month.getMonth()]}/${month.getFullYear()}`;
+                const isSelected =
+                  selectedMonth &&
+                  month.getMonth() === selectedMonth.getMonth() &&
+                  month.getFullYear() === selectedMonth.getFullYear();
+
+                return (
+                  <button
+                    key={monthLabel}
+                    onClick={() => setSelectedMonth(month)}
+                    className={`px-4 py-2 rounded whitespace-nowrap transition font-medium text-sm ${
+                      isSelected
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : 'bg-white text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    {monthLabel}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="bg-white p-4 sm:p-6 rounded-lg shadow mb-6">
           <div className="flex gap-2 mb-4">
             <select
@@ -217,21 +306,26 @@ export default function FixedBills() {
         </div>
 
         <div className="space-y-4">
-          {fixedBills.length === 0 ? (
-            <p className="text-center text-gray-500">Nenhuma conta fixa registrada</p>
+          {getBillsByMonth().length === 0 ? (
+            <p className="text-center text-gray-500">Nenhuma conta fixa registrada para este mês</p>
           ) : (
-            fixedBills.map((bill) => (
-              <div key={bill.id} className={`bg-white p-4 rounded-lg shadow ${isOverdue(bill.dueDay) ? 'border-l-4 border-red-500' : ''}`}>
+            getBillsByMonth().map((bill) => {
+              const isPaid = isBillPaid(bill.id);
+              return (
+              <div key={bill.id} className={`bg-white p-4 rounded-lg shadow ${isPaid ? 'border-l-4 border-green-500 opacity-75' : isOverdue(bill.dueDay) ? 'border-l-4 border-red-500' : ''}`}>
                 <div className="flex justify-between items-start mb-2">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="font-bold text-lg">{getCategoryEmoji(bill.category)} {bill.description}</p>
-                      {isOverdue(bill.dueDay) && (
+                      <p className={`font-bold text-lg ${isPaid ? 'line-through text-gray-400' : ''}`}>{getCategoryEmoji(bill.category)} {bill.description}</p>
+                      {isPaid && (
+                        <span className="bg-green-200 text-green-800 px-3 py-1 rounded-full text-xs font-bold">✓ PAGA</span>
+                      )}
+                      {isOverdue(bill.dueDay) && !isPaid && (
                         <span className="bg-red-200 text-red-800 px-3 py-1 rounded-full text-xs font-bold">⚠️ VENCIDA</span>
                       )}
                     </div>
-                    <p className="text-gray-600">Categoria: {getCategoryName(bill.category)}</p>
-                    <p className="text-gray-600">Vence dia: {new Date(bill.dueDay).toLocaleDateString('pt-BR')}</p>
+                    <p className={`text-gray-600 ${isPaid ? 'line-through' : ''}`}>Categoria: {getCategoryName(bill.category)}</p>
+                    <p className={`text-gray-600 ${isPaid ? 'line-through' : ''}`}>Vence dia: {new Date(bill.dueDay).toLocaleDateString('pt-BR')}</p>
                   </div>
                   <button
                     onClick={() => handleDelete(bill.id)}
@@ -243,22 +337,24 @@ export default function FixedBills() {
                 <div className="text-sm">
                   <div>
                     <p className="text-gray-600">Valor Mensal</p>
-                    <p className="font-bold text-lg">R$ {bill.amount.toFixed(2)}</p>
+                    <p className={`font-bold text-lg ${isPaid ? 'line-through text-gray-400' : ''}`}>R$ {bill.amount.toFixed(2)}</p>
                   </div>
                 </div>
               </div>
-            ))
+            );
+            })
           )}
         </div>
 
-        {fixedBills.length > 0 && (
+        {getBillsByMonth().length > 0 && (
           <div className="bg-white p-4 rounded-lg shadow mt-6">
             <h3 className="text-lg font-bold mb-4">Resumo Mensal</h3>
             <div className="text-center">
               <p className="text-gray-600">Total em Contas Fixas</p>
               <p className="font-bold text-2xl text-blue-600">
-                R$ {fixedBills.reduce((sum, bill) => sum + bill.amount, 0).toFixed(2)}
+                R$ {getBillsByMonth().reduce((sum, bill) => sum + bill.amount, 0).toFixed(2)}
               </p>
+              <p className="text-gray-600 mt-2">Pagas este mês: {getBillsByMonth().filter(bill => isBillPaid(bill.id)).length}/{getBillsByMonth().length}</p>
             </div>
           </div>
         )}
