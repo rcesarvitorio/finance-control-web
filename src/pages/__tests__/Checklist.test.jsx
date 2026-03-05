@@ -15,6 +15,10 @@ jest.mock('../../services/fixedBillService', () => ({
   getFixedBills: jest.fn(),
 }));
 
+jest.mock('../../services/installmentService', () => ({
+  getInstallments: jest.fn(),
+}));
+
 jest.mock('../../services/checklistService', () => ({
   saveChecklistItems: jest.fn(),
   getAllChecklistItems: jest.fn(),
@@ -29,6 +33,7 @@ jest.mock('react-router-dom', () => {
 });
 
 import { getFixedBills } from '../../services/fixedBillService';
+import { getInstallments } from '../../services/installmentService';
 import { saveChecklistItems, getAllChecklistItems } from '../../services/checklistService';
 import { useNavigate } from 'react-router-dom';
 
@@ -46,6 +51,7 @@ describe('Checklist Page', () => {
     useUserStore.mockReturnValue({ user: { email: 'test@example.com' }, clearUser: clearUserMock });
 
     getFixedBills.mockResolvedValue([]);
+    getInstallments.mockResolvedValue([]);
     getAllChecklistItems.mockResolvedValue({});
     saveChecklistItems.mockResolvedValue();
   });

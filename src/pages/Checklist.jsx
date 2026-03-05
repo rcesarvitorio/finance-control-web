@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { logout } from '../services/authService';
 import { useUserStore } from '../store/userStore';
 import { getFixedBills } from '../services/fixedBillService';
+import { getInstallments } from '../services/installmentService';
 import { saveChecklistItems, getAllChecklistItems } from '../services/checklistService';
 
 export default function Checklist() {
@@ -38,8 +39,26 @@ export default function Checklist() {
       const bills = await getFixedBills();
       setFixedBills(bills);
 
+      // Load installments
+      const installments = await getInstallments();
+
       // Load saved checklist items
       const savedItems = await getAllChecklistItems();
+
+      // Helper functions
+      const parseDate = (s) => {
+        if (!s) return null;
+        const d = new Date(s);
+        if (!isNaN(d)) return d;
+        // try ISO split
+        const parts = String(s).split('T')[0];
+        return new Date(parts);
+      };
+
+      const addMonths = (date, n) => {
+        const d = new Date(date.getFullYear(), date.getMonth() + n, 1);
+        return d;
+      };
 
       // Initialize checklists for each month
       const checklists = {};
@@ -55,16 +74,44 @@ export default function Checklist() {
           );
         });
 
+        // Get installments due this month (only non-card payments)
+        const installmentsDueThisMonth = [];
+        installments.filter(inst => inst.paymentMethod !== 'card').forEach((inst) => {
+          const amount = parseFloat(inst.installmentAmount ?? inst.amount ?? 0) || 0;
+          const totalInst = parseInt(inst.totalInstallments ?? 1, 10) || 1;
+          const purchase = parseDate(inst.purchaseDate ?? inst.createdAt ?? inst.created_at);
+          if (!purchase) return;
+
+          for (let i = 0; i < totalInst; i++) {
+            const dueMonth = addMonths(purchase, i + 1);
+            if (
+              dueMonth.getMonth() === month.getMonth() &&
+              dueMonth.getFullYear() === month.getFullYear()
+            ) {
+              installmentsDueThisMonth.push({
+                id: `${inst.id}_${i + 1}`,
+                text: `${inst.description} - Parcela ${i + 1}/${totalInst} - R$ ${amount.toFixed(2)}`,
+                completed: false,
+                installmentId: inst.id,
+                isFromFixedBill: true, // treat as fixed for no delete
+              });
+            }
+          }
+        });
+
         // Get saved items for this month or create new ones
         const savedMonthItems = savedItems[key];
         
-        let items = billsDueThisMonth.map((bill) => ({
-          id: bill.id,
-          text: `${bill.description} - R$ ${parseFloat(bill.amount).toFixed(2)}`,
-          completed: false,
-          billId: bill.id,
-          isFromFixedBill: true,
-        }));
+        let items = [
+          ...billsDueThisMonth.map((bill) => ({
+            id: bill.id,
+            text: `${bill.description} - R$ ${parseFloat(bill.amount).toFixed(2)}`,
+            completed: false,
+            billId: bill.id,
+            isFromFixedBill: true,
+          })),
+          ...installmentsDueThisMonth,
+        ];
 
         // Merge with saved state
         if (savedMonthItems) {
@@ -224,63 +271,45 @@ export default function Checklist() {
               </span>
             </div>
 
-            {/* Fixed Bills Section */}
-            {monthChecklists[getMonthKey(selectedMonth)].items.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold text-gray-600 mb-3">Contas Fixas</h3>
-                <div className="space-y-2">
-                  {monthChecklists[getMonthKey(selectedMonth)].items.map((item) => (
-                    <div key={item.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded">
-                      <input
-                        type="checkbox"
-                        checked={item.completed}
-                        onChange={() => handleToggleItem(item.id)}
-                        className="w-4 h-4 cursor-pointer"
-                      />
-                      <span
-                        className={`flex-1 text-sm sm:text-base font-medium ${
-                          item.completed ? 'line-through text-gray-400' : 'text-gray-700'
-                        }`}
-                      >
-                        {item.text}
-                      </span>
-                    </div>
-                  ))}
+            {/* All Items Section */}
+            {(() => {
+              const allItems = [
+                ...monthChecklists[getMonthKey(selectedMonth)].items,
+                ...monthChecklists[getMonthKey(selectedMonth)].additionalItems,
+              ];
+              return allItems.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-600 mb-3">Itens do Checklist</h3>
+                  <div className="space-y-2">
+                    {allItems.map((item) => (
+                      <div key={item.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded">
+                        <input
+                          type="checkbox"
+                          checked={item.completed}
+                          onChange={() => handleToggleItem(item.id)}
+                          className="w-4 h-4 cursor-pointer"
+                        />
+                        <span
+                          className={`flex-1 text-sm sm:text-base font-medium ${
+                            item.completed ? 'line-through text-gray-400' : 'text-gray-700'
+                          }`}
+                        >
+                          {item.text}
+                        </span>
+                        {!item.isFromFixedBill && (
+                          <button
+                            onClick={() => handleDeleteItem(item.id)}
+                            className="text-red-500 hover:text-red-700 text-xs"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-
-            {/* Additional Items Section */}
-            {monthChecklists[getMonthKey(selectedMonth)].additionalItems.length > 0 && (
-              <div className="mb-6 pb-4 border-t border-gray-200 pt-4">
-                <h3 className="text-sm font-semibold text-gray-600 mb-3">Itens Adicionais</h3>
-                <div className="space-y-2">
-                  {monthChecklists[getMonthKey(selectedMonth)].additionalItems.map((item) => (
-                    <div key={item.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded">
-                      <input
-                        type="checkbox"
-                        checked={item.completed}
-                        onChange={() => handleToggleItem(item.id)}
-                        className="w-4 h-4 cursor-pointer"
-                      />
-                      <span
-                        className={`flex-1 text-sm sm:text-base ${
-                          item.completed ? 'line-through text-gray-400' : 'text-gray-700'
-                        }`}
-                      >
-                        {item.text}
-                      </span>
-                      <button
-                        onClick={() => handleDeleteItem(item.id)}
-                        className="text-red-500 hover:text-red-700 text-xs"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Add New Item */}
             <div className="mt-6 pt-4 border-t border-gray-300">
