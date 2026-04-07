@@ -157,10 +157,12 @@ export default function Checklist() {
     }
   };
 
-  const handleToggleItem = (itemId) => {
+  const handleToggleItem = async (itemId) => {
     if (!selectedMonth) return;
     const key = getMonthKey(selectedMonth);
-    setMonthChecklists({
+    
+    // Update state
+    const updatedChecklists = {
       ...monthChecklists,
       [key]: {
         ...monthChecklists[key],
@@ -171,7 +173,23 @@ export default function Checklist() {
           item.id === itemId ? { ...item, completed: !item.completed } : item
         ),
       },
-    });
+    };
+    setMonthChecklists(updatedChecklists);
+    
+    // Auto-save to database
+    try {
+      const currentChecklist = updatedChecklists[key];
+      const allItems = [
+        ...currentChecklist.items,
+        ...currentChecklist.additionalItems,
+      ];
+      await saveChecklistItems(key, allItems);
+      setShowSuccessMessage(true);
+      setTimeout(() => setShowSuccessMessage(false), 2000);
+    } catch (error) {
+      console.error('Error saving checklist:', error);
+      alert('Erro ao salvar checklist');
+    }
   };
 
   const handleDeleteItem = (itemId) => {
@@ -188,27 +206,7 @@ export default function Checklist() {
     });
   };
 
-  const handleSave = async () => {
-    if (!selectedMonth) return;
-    
-    try {
-      const key = getMonthKey(selectedMonth);
-      const currentChecklist = monthChecklists[key];
-      
-      // Combine all items (fixed bills + additional items)
-      const allItems = [
-        ...currentChecklist.items,
-        ...currentChecklist.additionalItems,
-      ];
-      
-      await saveChecklistItems(key, allItems);
-      setShowSuccessMessage(true);
-      setTimeout(() => setShowSuccessMessage(false), 3000);
-    } catch (error) {
-      console.error('Error saving checklist:', error);
-      alert('Erro ao salvar checklist');
-    }
-  };
+
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 sm:p-6">
@@ -342,15 +340,7 @@ export default function Checklist() {
               </div>
             </div>
 
-            {/* Save Button */}
-            <div className="mt-6 pt-4 border-t border-gray-300">
-              <button
-                onClick={handleSave}
-                className="w-full bg-blue-600 text-white px-4 py-3 rounded hover:bg-blue-700 font-semibold text-base"
-              >
-                💾 Salvar Checklist
-              </button>
-            </div>
+
           </div>
         )}
       </div>
