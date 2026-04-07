@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { 
   addFixedBill, 
   getFixedBills, 
-  deleteFixedBill 
+  deleteFixedBill,
+  updateFixedBill
 } from '../services/fixedBillService';
 import { getAllChecklistItems } from '../services/checklistService';
+import { getMonthsRange } from '../utils/dateUtils';
 
 export default function FixedBills() {
   const [fixedBills, setFixedBills] = useState([]);
@@ -18,6 +20,8 @@ export default function FixedBills() {
   const [checklistItems, setChecklistItems] = useState({});
   const [months, setMonths] = useState([]);
   const [selectedMonth, setSelectedMonth] = useState(null);
+  const [editingBillId, setEditingBillId] = useState(null);
+  const [editingAmount, setEditingAmount] = useState('');
 
   useEffect(() => {
     loadFixedBills();
@@ -36,14 +40,9 @@ export default function FixedBills() {
   }, []);
 
   const initializeMonths = () => {
-    const now = new Date();
-    const monthsList = [];
-    for (let i = 0; i < 12; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-      monthsList.push(d);
-    }
+    const monthsList = getMonthsRange();
     setMonths(monthsList);
-    setSelectedMonth(monthsList[0]);
+    setSelectedMonth(monthsList[3]); // Select current month (4th position: 3 back + current)
   };
 
   const loadChecklistItems = async () => {
@@ -135,6 +134,62 @@ export default function FixedBills() {
       await deleteFixedBill(id);
       loadFixedBills();
     }
+  };
+
+  const handleReplicate = async (bill) => {
+    const currentDueDate = new Date(bill.dueDay);
+    const nextMonthDueDate = new Date(currentDueDate);
+    nextMonthDueDate.setMonth(nextMonthDueDate.getMonth() + 1);
+
+    await addFixedBill({
+      description: bill.description,
+      amount: 0, // Valor zerado para edição posterior
+      dueDay: nextMonthDueDate.toISOString().split('T')[0],
+      category: bill.category,
+    });
+
+    loadFixedBills();
+  };
+
+  const isBillAlreadyReplicated = (bill) => {
+    const currentDueDate = new Date(bill.dueDay);
+    const nextMonthDueDate = new Date(currentDueDate);
+    nextMonthDueDate.setMonth(nextMonthDueDate.getMonth() + 1);
+    
+    return fixedBills.some(existingBill => 
+      existingBill.description === bill.description &&
+      new Date(existingBill.dueDay).getMonth() === nextMonthDueDate.getMonth() &&
+      new Date(existingBill.dueDay).getFullYear() === nextMonthDueDate.getFullYear()
+    );
+  };
+
+  const handleEditAmount = (bill) => {
+    setEditingBillId(bill.id);
+    setEditingAmount(bill.amount.toString());
+  };
+
+  const handleSaveAmount = async () => {
+    if (!editingBillId || !editingAmount) return;
+
+    const numericAmount = parseFloat(editingAmount.replace(',', '.'));
+    if (isNaN(numericAmount) || numericAmount < 0) {
+      alert('Por favor, insira um valor válido');
+      return;
+    }
+
+    try {
+      await updateFixedBill(editingBillId, { amount: numericAmount });
+      setEditingBillId(null);
+      setEditingAmount('');
+      loadFixedBills();
+    } catch (error) {
+      alert('Erro ao atualizar o valor');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingBillId(null);
+    setEditingAmount('');
   };
 
   const getCategoryEmoji = (category) => {
@@ -327,17 +382,69 @@ export default function FixedBills() {
                     <p className={`text-gray-600 ${isPaid ? 'line-through' : ''}`}>Categoria: {getCategoryName(bill.category)}</p>
                     <p className={`text-gray-600 ${isPaid ? 'line-through' : ''}`}>Vence dia: {new Date(bill.dueDay).toLocaleDateString('pt-BR')}</p>
                   </div>
-                  <button
-                    onClick={() => handleDelete(bill.id)}
-                    className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-                  >
-                    Deletar
-                  </button>
+                  <div className="flex gap-2">
+                    {isBillAlreadyReplicated(bill) ? (
+                      <span className="bg-gray-200 text-gray-600 px-3 py-2 rounded text-sm" title="Conta já replicada para o próximo mês">
+                        ✓ Enviada
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleReplicate(bill)}
+                        className="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 text-sm"
+                        title="Replicar para o próximo mês"
+                      >
+                        ➡️ Próximo Mês
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDelete(bill.id)}
+                      className="bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600 text-sm"
+                    >
+                      Deletar
+                    </button>
+                  </div>
                 </div>
                 <div className="text-sm">
-                  <div>
-                    <p className="text-gray-600">Valor Mensal</p>
-                    <p className={`font-bold text-lg ${isPaid ? 'line-through text-gray-400' : ''}`}>R$ {bill.amount.toFixed(2)}</p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-600">Valor Mensal</p>
+                      {editingBillId === bill.id ? (
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-gray-600">R$</span>
+                          <input
+                            type="text"
+                            value={editingAmount}
+                            onChange={(e) => setEditingAmount(e.target.value)}
+                            className="w-20 px-2 py-1 border rounded text-sm edit-amount-input"
+                            placeholder="0.00"
+                            onKeyPress={(e) => e.key === 'Enter' && handleSaveAmount()}
+                          />
+                          <button
+                            onClick={handleSaveAmount}
+                            className="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 text-xs"
+                          >
+                            ✓
+                          </button>
+                          <button
+                            onClick={handleCancelEdit}
+                            className="bg-gray-500 text-white px-2 py-1 rounded hover:bg-gray-600 text-xs"
+                          >
+                            ✗
+                          </button>
+                        </div>
+                      ) : (
+                        <p className={`font-bold text-lg ${isPaid ? 'line-through text-gray-400' : ''}`}>R$ {bill.amount.toFixed(2)}</p>
+                      )}
+                    </div>
+                    {editingBillId !== bill.id && (
+                      <button
+                        onClick={() => handleEditAmount(bill)}
+                        className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 text-xs"
+                        title="Editar valor"
+                      >
+                        ✏️ Editar
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

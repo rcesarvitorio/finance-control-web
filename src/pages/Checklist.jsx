@@ -4,7 +4,9 @@ import { logout } from '../services/authService';
 import { useUserStore } from '../store/userStore';
 import { getFixedBills } from '../services/fixedBillService';
 import { getInstallments } from '../services/installmentService';
+import { getInvestments } from '../services/investmentService';
 import { saveChecklistItems, getAllChecklistItems } from '../services/checklistService';
+import { getMonthsRange } from '../utils/dateUtils';
 
 export default function Checklist() {
   const navigate = useNavigate();
@@ -25,15 +27,10 @@ export default function Checklist() {
 
   useEffect(() => {
     const loadData = async () => {
-      // Prepare next 12 months
-      const now = new Date();
-      const monthsList = [];
-      for (let i = 0; i < 12; i++) {
-        const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-        monthsList.push(d);
-      }
+      // Prepare 3 months back + current + 9 months forward (12 total)
+      const monthsList = getMonthsRange();
       setMonths(monthsList);
-      setSelectedMonth(monthsList[0]);
+      setSelectedMonth(monthsList[3]); // Select current month (4th position: 3 back + current)
 
       // Load fixed bills
       const bills = await getFixedBills();
@@ -41,6 +38,9 @@ export default function Checklist() {
 
       // Load installments
       const installments = await getInstallments();
+
+      // Load investments
+      const investments = await getInvestments();
 
       // Load saved checklist items
       const savedItems = await getAllChecklistItems();
@@ -99,6 +99,22 @@ export default function Checklist() {
           }
         });
 
+        // Get investments due this month
+        const investmentsDueThisMonth = investments.filter((inv) => {
+          const invDate = parseDate(inv.dueDay);
+          if (!invDate) return false;
+          // Show investment from its initial month onwards (recurring monthly)
+          const isOnOrAfter = invDate.getFullYear() < month.getFullYear() ||
+            (invDate.getFullYear() === month.getFullYear() && invDate.getMonth() <= month.getMonth());
+          return isOnOrAfter;
+        }).map((inv) => ({
+          id: `inv_${inv.id}`,
+          text: `${inv.description} - R$ ${parseFloat(inv.amount).toFixed(2)}`,
+          completed: false,
+          investmentId: inv.id,
+          isFromFixedBill: true,
+        }));
+
         // Get saved items for this month or create new ones
         const savedMonthItems = savedItems[key];
         
@@ -111,6 +127,7 @@ export default function Checklist() {
             isFromFixedBill: true,
           })),
           ...installmentsDueThisMonth,
+          ...investmentsDueThisMonth,
         ];
 
         // Merge with saved state
