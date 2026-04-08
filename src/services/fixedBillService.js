@@ -5,7 +5,8 @@ import {
   deleteDoc, 
   doc,
   query,
-  where
+  where,
+  updateDoc
 } from 'firebase/firestore';
 import { db } from './firebaseConfig';
 import { getCurrentUser } from './authService';
@@ -37,4 +38,11 @@ export const getFixedBills = async () => {
 
 export const deleteFixedBill = async (id) => {
   return deleteDoc(doc(db, FIXED_BILLS_COLLECTION, id));
+};
+
+export const updateFixedBill = async (id, updates) => {
+  return updateDoc(doc(db, FIXED_BILLS_COLLECTION, id), {
+    ...updates,
+    updatedAt: new Date()
+  });
 };

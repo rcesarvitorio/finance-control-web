@@ -6,13 +6,14 @@ jest.mock('../../services/fixedBillService', () => ({
   addFixedBill: jest.fn(),
   getFixedBills: jest.fn(),
   deleteFixedBill: jest.fn(),
+  updateFixedBill: jest.fn(),
 }));
 
 jest.mock('../../services/checklistService', () => ({
   getAllChecklistItems: jest.fn(),
 }));
 
-import { addFixedBill, getFixedBills, deleteFixedBill } from '../../services/fixedBillService';
+import { addFixedBill, getFixedBills, deleteFixedBill, updateFixedBill } from '../../services/fixedBillService';
 import { getAllChecklistItems } from '../../services/checklistService';
 
 describe('FixedBills Page', () => {
@@ -38,8 +39,8 @@ describe('FixedBills Page', () => {
 
   it('Deve listar contas fixas quando retornadas pela API', async () => {
     const bills = [
-      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-02-20', category: 'agua' },
-      { id: 'f2', description: 'Luz', amount: 40, dueDay: '2026-02-25', category: 'luz' },
+      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-04-20', category: 'agua' },
+      { id: 'f2', description: 'Luz', amount: 40, dueDay: '2026-04-25', category: 'luz' },
     ];
     getFixedBills.mockResolvedValue(bills);
     renderFixedBills();
@@ -51,8 +52,8 @@ describe('FixedBills Page', () => {
 
   it('Mostra resumo mensal com o total das contas fixas', async () => {
     const bills = [
-      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-02-20', category: 'agua' },
-      { id: 'f2', description: 'Luz', amount: 40, dueDay: '2026-02-25', category: 'luz' },
+      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-04-20', category: 'agua' },
+      { id: 'f2', description: 'Luz', amount: 40, dueDay: '2026-04-25', category: 'luz' },
     ];
     getFixedBills.mockResolvedValue(bills);
     renderFixedBills();
@@ -64,7 +65,7 @@ describe('FixedBills Page', () => {
 
   it('Deve deletar conta fixa ao confirmar', async () => {
     const bills = [
-      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-02-20', category: 'agua' },
+      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-04-20', category: 'agua' },
     ];
     getFixedBills.mockResolvedValue(bills);
     deleteFixedBill.mockResolvedValue();
@@ -110,7 +111,7 @@ describe('FixedBills Page', () => {
     fireEvent.change(amountInput, { target: { value: '100' } });
     // Preenche data de vencimento (input[type="date"])
     const dateInput = container.querySelector('input[type="date"]');
-    fireEvent.change(dateInput, { target: { value: '2026-02-20' } });
+    fireEvent.change(dateInput, { target: { value: '2026-04-20' } });
 
     // Botão Adicionar Conta Fixa
     const addBtn = screen.getByText('Adicionar Conta Fixa');
@@ -120,7 +121,7 @@ describe('FixedBills Page', () => {
       expect(addFixedBill).toHaveBeenCalledWith(expect.objectContaining({
         description: 'agua',
         amount: 100,
-        dueDay: '2026-02-20',
+        dueDay: '2026-04-20',
         category: 'agua'
       }));
       expect(getFixedBills).toHaveBeenCalled();
@@ -139,8 +140,8 @@ describe('FixedBills Page', () => {
 
   it('Deve filtrar contas por mês selecionado', async () => {
     const bills = [
-      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-02-20', category: 'agua' },
-      { id: 'f2', description: 'Luz', amount: 40, dueDay: '2026-03-25', category: 'luz' },
+      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-04-20', category: 'agua' },
+      { id: 'f2', description: 'Luz', amount: 40, dueDay: '2026-04-25', category: 'luz' },
     ];
     getFixedBills.mockResolvedValue(bills);
     
@@ -153,27 +154,27 @@ describe('FixedBills Page', () => {
     // Inicialmente deve mostrar ambas as contas (se ambas forem do mês inicial)
     // Vamos clicar no mês de março e verificar se apenas a conta de março aparece
     const monthButtons = screen.getAllByRole('button').filter(btn => 
-      btn.textContent.includes('MAR')
+      btn.textContent.includes('MAI')
     );
 
     if (monthButtons.length > 0) {
       fireEvent.click(monthButtons[0]);
       
       await waitFor(() => {
-        // Apenas a conta de março deve estar visível
-        expect(screen.getByText('Luz')).toBeInTheDocument();
+        // Apenas a conta de maio deve estar visível, mas como não há, deve mostrar mensagem
+        expect(screen.getByText('Nenhuma conta fixa registrada para este mês')).toBeInTheDocument();
       });
     }
   });
 
   it('Deve mostrar "PAGA" para contas marcadas no checklist', async () => {
     const bills = [
-      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-02-20', category: 'agua' },
+      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-04-20', category: 'agua' },
     ];
     getFixedBills.mockResolvedValue(bills);
     
     const checklistItems = {
-      '2026-02': [
+      '2026-04': [
         { id: 'f1', text: 'Água - R$ 60.00', completed: true, isFromFixedBill: true }
       ]
     };
@@ -188,12 +189,12 @@ describe('FixedBills Page', () => {
 
   it('Não deve mostrar "PAGA" para contas não marcadas no checklist', async () => {
     const bills = [
-      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-02-20', category: 'agua' },
+      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-04-20', category: 'agua' },
     ];
     getFixedBills.mockResolvedValue(bills);
     
     const checklistItems = {
-      '2026-02': [
+      '2026-04': [
         { id: 'f1', text: 'Água - R$ 60.00', completed: false, isFromFixedBill: true }
       ]
     };
@@ -208,7 +209,7 @@ describe('FixedBills Page', () => {
 
   it('Deve recarregar checklist quando página fica visível', async () => {
     const bills = [
-      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-02-20', category: 'agua' },
+      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-04-20', category: 'agua' },
     ];
     getFixedBills.mockResolvedValue(bills);
 
@@ -235,12 +236,12 @@ describe('FixedBills Page', () => {
 
   it('Deve mostrar texto riscado e opaco para contas pagas', async () => {
     const bills = [
-      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-02-20', category: 'agua' },
+      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-04-20', category: 'agua' },
     ];
     getFixedBills.mockResolvedValue(bills);
     
     const checklistItems = {
-      '2026-02': [
+      '2026-04': [
         { id: 'f1', text: 'Água - R$ 60.00', completed: true, isFromFixedBill: true }
       ]
     };
@@ -257,8 +258,8 @@ describe('FixedBills Page', () => {
 
   it('Deve atualizar resumo mensal com total do mês selecionado', async () => {
     const bills = [
-      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-02-20', category: 'agua' },
-      { id: 'f2', description: 'Luz', amount: 40, dueDay: '2026-03-25', category: 'luz' },
+      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-04-20', category: 'agua' },
+      { id: 'f2', description: 'Luz', amount: 40, dueDay: '2026-04-25', category: 'luz' },
     ];
     getFixedBills.mockResolvedValue(bills);
 
@@ -273,7 +274,7 @@ describe('FixedBills Page', () => {
 
   it('Deve se selecionar o mês atual por padrão', async () => {
     const bills = [
-      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-02-20', category: 'agua' },
+      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-04-20', category: 'agua' },
     ];
     getFixedBills.mockResolvedValue(bills);
 
@@ -291,7 +292,7 @@ describe('FixedBills Page', () => {
 
   it('Deve mostrar mensagem quando não há contas no mês selecionado', async () => {
     const bills = [
-      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-02-20', category: 'agua' },
+      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-04-20', category: 'agua' },
     ];
     getFixedBills.mockResolvedValue(bills);
 
@@ -313,4 +314,69 @@ describe('FixedBills Page', () => {
         expect(screen.getByText('Nenhuma conta fixa registrada para este mês')).toBeInTheDocument();
       });
     }  });
+
+  it('Deve mostrar botão de replicar quando conta não foi replicada', async () => {
+    const bills = [
+      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-04-20', category: 'agua' },
+    ];
+    getFixedBills.mockResolvedValue(bills);
+
+    renderFixedBills();
+
+    await waitFor(() => {
+      expect(screen.getByText('➡️ Próximo Mês')).toBeInTheDocument();
+      expect(screen.queryByText('✓ Enviada')).not.toBeInTheDocument();
+    });
+  });
+
+  it('Deve mostrar "✓ Enviada" quando conta já foi replicada', async () => {
+    const bills = [
+      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-04-20', category: 'agua' },
+      { id: 'f2', description: 'Água', amount: 0, dueDay: '2026-05-20', category: 'agua' },
+    ];
+    getFixedBills.mockResolvedValue(bills);
+
+    renderFixedBills();
+
+    await waitFor(() => {
+      expect(screen.getByText('✓ Enviada')).toBeInTheDocument();
+      expect(screen.queryByText('➡️ Próximo Mês')).not.toBeInTheDocument();
+    });
+  });
+
+  it('Deve permitir editar o valor da conta fixa', async () => {
+    const bills = [
+      { id: 'f1', description: 'Água', amount: 60, dueDay: '2026-04-20', category: 'agua' },
+    ];
+    getFixedBills.mockResolvedValue(bills);
+    updateFixedBill.mockResolvedValue();
+
+    const { container } = renderFixedBills();
+
+    await waitFor(() => {
+      // Verificar se a conta está sendo exibida
+      expect(screen.getByText('💧 Água')).toBeInTheDocument();
+    });
+
+    // Clicar no botão editar
+    const editButton = screen.getByText('✏️ Editar');
+    fireEvent.click(editButton);
+
+    // Aguardar o input aparecer e ter o valor correto
+    await waitFor(() => {
+      const input = container.querySelector('.edit-amount-input');
+      expect(input).toBeInTheDocument();
+      expect(input.value).toBe('60');
+    });
+
+    // Alterar o valor
+    const input = container.querySelector('.edit-amount-input');
+    fireEvent.change(input, { target: { value: '75.50' } });
+
+    // Salvar
+    const saveButton = screen.getByText('✓');
+    fireEvent.click(saveButton);
+
+    expect(updateFixedBill).toHaveBeenCalledWith('f1', { amount: 75.50 });
+  });
 });

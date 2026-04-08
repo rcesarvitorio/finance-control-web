@@ -6,6 +6,7 @@ import { getInstallments } from '../services/installmentService';
 import { getFixedBills } from '../services/fixedBillService';
 import { getInvestments } from '../services/investmentService';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { getMonthsRange } from '../utils/dateUtils';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ export default function Dashboard() {
   const [fixedBillTotals, setFixedBillTotals] = useState([]);
   const [installmentTotals, setInstallmentTotals] = useState([]);
   const [investmentTotals, setInvestmentTotals] = useState([]);
+  const [currentMonthIndex, setCurrentMonthIndex] = useState(-1);
 
   const handleLogout = async () => {
     await logout();
@@ -24,13 +26,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     const load = async () => {
-      // prepare next 12 months
-      const now = new Date();
-      const months = [];
-      for (let i = 0; i < 12; i++) {
-        const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-        months.push(d);
-      }
+      // prepare 3 months back + current + 9 months forward (12 total)
+      const months = getMonthsRange();
 
       const endDate = new Date(months[months.length - 1].getFullYear(), months[months.length - 1].getMonth() + 1, 0);
 
@@ -87,13 +84,16 @@ export default function Dashboard() {
       // Calcular totais dos investimentos para cada mês
       investments.forEach((investment) => {
         const investmentAmount = parseFloat(investment.amount) || 0;
-        const investmentDate = new Date(investment.dueDay);
+        const investmentDate = parseDate(investment.dueDay);
+        if (!investmentDate) return;
         
         months.forEach((m) => {
           const key = `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}`;
           
-          // Adicionar investimento apenas no mês correspondente
-          if (investmentDate.getMonth() === m.getMonth() && investmentDate.getFullYear() === m.getFullYear()) {
+          // Adicionar investimento em todos os meses a partir do mês inicial
+          const isOnOrAfter = investmentDate.getFullYear() < m.getFullYear() ||
+            (investmentDate.getFullYear() === m.getFullYear() && investmentDate.getMonth() <= m.getMonth());
+          if (isOnOrAfter) {
             totalsMap[key] = (totalsMap[key] || 0) + investmentAmount;
             investmentsMap[key] = (investmentsMap[key] || 0) + investmentAmount;
           }
@@ -124,8 +124,17 @@ export default function Dashboard() {
         return totalsMap[key] || 0;
       });
 
+      // Identificar o índice do mês atual
+      const now = new Date();
+      const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const currentIdx = months.findIndex((m) => {
+        const key = `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}`;
+        return key === currentMonthKey;
+      });
+
       setMonthLabels(labels);
       setMonthlyTotals(totals);
+      setCurrentMonthIndex(currentIdx);
       setFixedBillTotals(months.map((m) => {
         const key = `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}`;
         return fixedBillsMap[key] || 0;
@@ -181,21 +190,39 @@ export default function Dashboard() {
         </div>
 
         <div className="bg-white p-4 rounded-lg shadow" data-testid="dashboard-totals-12m">
-          <h3 className="text-base sm:text-lg font-bold mb-4">Totais Mensais (próximos 12 meses)</h3>
+          <h3 className="text-base sm:text-lg font-bold mb-4">Totais Mensais</h3>
           <p className="text-xs sm:text-sm text-gray-600 mb-4">Incluindo parcelamentos, contas fixas e investimentos</p>
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
                 <tr>
-                  {monthLabels.map((lbl) => (
-                    <th key={lbl} className="px-2 py-2 text-left text-gray-600 text-xs sm:px-4">{lbl}</th>
+                  {monthLabels.map((lbl, idx) => (
+                    <th 
+                      key={lbl} 
+                      className={`px-2 py-2 text-left text-xs sm:px-4 ${
+                        idx === currentMonthIndex 
+                          ? 'bg-blue-100 text-blue-800 font-bold' 
+                          : 'text-gray-600'
+                      }`}
+                    >
+                      {lbl}
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 <tr>
                   {monthlyTotals.map((val, idx) => (
-                    <td key={idx} className="px-2 py-3 font-bold text-xs sm:px-4">{val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                    <td 
+                      key={idx} 
+                      className={`px-2 py-3 font-bold text-xs sm:px-4 ${
+                        idx === currentMonthIndex 
+                          ? 'bg-blue-50 text-blue-900' 
+                          : ''
+                      }`}
+                    >
+                      {val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </td>
                   ))}
                 </tr>
               </tbody>
@@ -214,6 +241,7 @@ export default function Dashboard() {
                   fixas: fixedBillTotals[idx] || 0,
                   parcelas: installmentTotals[idx] || 0,
                   investimentos: investmentTotals[idx] || 0,
+                  isCurrentMonth: idx === currentMonthIndex,
                 }))}
                 margin={{ top: 5, right: 10, left: 0, bottom: 60 }}
               >
@@ -224,6 +252,7 @@ export default function Dashboard() {
                   textAnchor="end" 
                   height={60}
                   tick={{ fontSize: 10 }}
+                  tickFormatter={(value, index) => index === currentMonthIndex ? `📍 ${value}` : value}
                 />
                 <YAxis tick={{ fontSize: 10 }} />
                 <Tooltip 
